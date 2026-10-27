@@ -65,7 +65,7 @@ class MacroAccessibilityService : AccessibilityService() {
         val path = Path()
         path.moveTo(s.x, s.y)
         if (s.type == 1) path.lineTo(s.x2, s.y2)
-        val dur = if (s.type == 1) 300L else 50L
+        val dur = if (s.type == 1) 300L else 25L
         val g = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, dur))
             .build()

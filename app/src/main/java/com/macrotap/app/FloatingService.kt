@@ -131,6 +131,7 @@ class FloatingService : Service() {
                         moved = false
                         unlocked = false
                         handler.postDelayed(hold, 5000)
+                        runMacro(id)
                     }
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -156,8 +157,6 @@ class FloatingService : Service() {
                             v.alpha = 1f
                             unlocked = false
                             toast("Locked")
-                        } else if (!moved) {
-                            runMacro(id)
                         }
                     }
                 }

@@ -8,7 +8,7 @@ import kotlin.math.hypot
 
 class ShapeButtonView(context: Context) : View(context) {
     var shape = 0 // 0 circle, 1 square, 2 triangle
-    var color = Color.parseColor("#E64A19")
+    var color = Color.parseColor("#00E5A0")
     var label = ""
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

@@ -69,14 +69,14 @@ class RecorderService : Service() {
     private fun startAsForeground() {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(
-            NotificationChannel("macrotap", "MacroTap", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel("macrotap", "Drivex Play", NotificationManager.IMPORTANCE_LOW)
         )
         val stopPi = PendingIntent.getService(
             this, 0, Intent(this, RecorderService::class.java).setAction("STOP"),
             PendingIntent.FLAG_IMMUTABLE
         )
         val n = Notification.Builder(this, "macrotap")
-            .setContentTitle("MacroTap is recording the screen")
+            .setContentTitle("Drivex Play is recording the screen")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .addAction(
                 Notification.Action.Builder(
@@ -118,7 +118,7 @@ class RecorderService : Service() {
         r.setOutputFile(vf.path)
         r.prepare()
         display = proj.createVirtualDisplay(
-            "MacroTap", w, h, dm.densityDpi,
+            "DrivexPlay", w, h, dm.densityDpi,
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, r.surface, null, null
         )
         r.start()
@@ -163,7 +163,7 @@ class RecorderService : Service() {
                     }
                 }
                 saveToGallery(finalFile)
-                toast("Saved to Movies/MacroTap")
+                toast("Saved to Movies/DrivexPlay")
             } catch (e: Exception) {
                 toast("Save failed: ${e.message}")
             }
@@ -213,11 +213,11 @@ class RecorderService : Service() {
     }
 
     private fun saveToGallery(file: File) {
-        val name = "MacroTap_" + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) + ".mp4"
+        val name = "DrivexPlay_" + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) + ".mp4"
         val cv = ContentValues()
         cv.put(MediaStore.Video.Media.DISPLAY_NAME, name)
         cv.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-        cv.put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/MacroTap")
+        cv.put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/DrivexPlay")
         val uri = contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, cv)!!
         contentResolver.openOutputStream(uri)!!.use { out ->
             file.inputStream().use { it.copyTo(out) }

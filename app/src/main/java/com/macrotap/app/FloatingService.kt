@@ -6,7 +6,11 @@ import android.content.pm.ServiceInfo
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.*
 import android.widget.*
 import kotlin.math.abs
@@ -21,6 +25,7 @@ class FloatingService : Service() {
     }
 
     private lateinit var wm: WindowManager
+    private val handler = Handler(Looper.getMainLooper())
     private val views = HashMap<Long, ShapeButtonView>()
     private var panel: View? = null
     private var addBtn: Button? = null
@@ -39,7 +44,7 @@ class FloatingService : Service() {
         val id = intent?.getLongExtra("id", 0L) ?: 0L
         when (intent?.action) {
             SHOW -> show(id)
-            HIDE -> hide(id)
+            HIDE -> removeButton(id)
             RECORD -> startRecording()
         }
         idleCheck()
@@ -49,10 +54,10 @@ class FloatingService : Service() {
     private fun startAsForeground() {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(
-            NotificationChannel("macrotap", "MacroTap", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel("macrotap", "Drivex Play", NotificationManager.IMPORTANCE_LOW)
         )
         val n = Notification.Builder(this, "macrotap")
-            .setContentTitle("MacroTap buttons are active")
+            .setContentTitle("Drivex Play buttons are active")
             .setSmallIcon(android.R.drawable.ic_menu_add)
             .build()
         if (Build.VERSION.SDK_INT >= 34) {
@@ -68,21 +73,23 @@ class FloatingService : Service() {
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
 
+    private fun buzz() {
+        try {
+            val v = getSystemService(VIBRATOR_SERVICE) as Vibrator
+            v.vibrate(VibrationEffect.createOneShot(90, VibrationEffect.DEFAULT_AMPLITUDE))
+        } catch (e: Exception) {
+        }
+    }
+
     private fun overlayParams(w: Int, h: Int, flags: Int): WindowManager.LayoutParams {
         return WindowManager.LayoutParams(
             w, h, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, flags, PixelFormat.TRANSLUCENT
         )
     }
 
-    // ---------- floating macro buttons ----------
-
     private fun removeButton(id: Long) {
         views.remove(id)?.let { wm.removeView(it) }
         shown.remove(id)
-    }
-
-    private fun hide(id: Long) {
-        removeButton(id)
     }
 
     private fun show(id: Long) {
@@ -95,7 +102,9 @@ class FloatingService : Service() {
         v.label = m.name.take(2)
         val p = overlayParams(
             px, px,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                WindowManager.LayoutParams.FLAG_SPLIT_TOUCH
         )
         p.gravity = Gravity.TOP or Gravity.START
         p.x = m.px
@@ -106,30 +115,56 @@ class FloatingService : Service() {
         var ty = 0f
         var moved = false
         var ok = false
+        var unlocked = false
+        val hold = Runnable {
+            unlocked = true
+            v.alpha = 0.6f
+            buzz()
+            toast("Unlocked: drag it, then let go to lock")
+        }
         v.setOnTouchListener { _, e ->
             when (e.action) {
                 MotionEvent.ACTION_DOWN -> {
                     ok = v.contains(e.x, e.y)
                     if (ok) {
-                        sx = p.x; sy = p.y; tx = e.rawX; ty = e.rawY; moved = false
+                        sx = p.x; sy = p.y; tx = e.rawX; ty = e.rawY
+                        moved = false
+                        unlocked = false
+                        handler.postDelayed(hold, 5000)
                     }
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (ok) {
                         val dx = (e.rawX - tx).toInt()
                         val dy = (e.rawY - ty).toInt()
-                        if (abs(dx) > 15 || abs(dy) > 15) moved = true
-                        if (moved) {
+                        if (unlocked) {
+                            moved = true
                             p.x = sx + dx
                             p.y = sy + dy
                             wm.updateViewLayout(v, p)
+                        } else if (abs(dx) > 25 || abs(dy) > 25) {
+                            moved = true
+                            handler.removeCallbacks(hold)
                         }
                     }
                 }
                 MotionEvent.ACTION_UP -> {
+                    handler.removeCallbacks(hold)
                     if (ok) {
-                        if (moved) Store.move(this, id, p.x, p.y) else runMacro(id)
+                        if (unlocked) {
+                            Store.move(this, id, p.x, p.y)
+                            v.alpha = 1f
+                            unlocked = false
+                            toast("Locked")
+                        } else if (!moved) {
+                            runMacro(id)
+                        }
                     }
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    handler.removeCallbacks(hold)
+                    v.alpha = 1f
+                    unlocked = false
                 }
             }
             ok
@@ -143,13 +178,11 @@ class FloatingService : Service() {
         val m = Store.get(this, id) ?: return
         val s = MacroAccessibilityService.instance
         if (s == null) {
-            Toast.makeText(this, "Turn on MacroTap in Accessibility settings first", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Turn on Drivex Play in Accessibility settings first", Toast.LENGTH_LONG).show()
         } else {
             s.toggle(m)
         }
     }
-
-    // ---------- recording a new macro ----------
 
     private fun startRecording() {
         if (panel != null) return
@@ -255,17 +288,18 @@ class FloatingService : Service() {
         }
         val n = Store.all(this).size
         val m = Macro(
-            System.currentTimeMillis(), "Macro ${n + 1}", 0, 80, Color.parseColor("#E64A19"),
+            System.currentTimeMillis(), "Macro ${n + 1}", 0, 80, Color.parseColor("#00E5A0"),
             1, 100 + 140 * (n % 5), 400, steps
         )
         Store.put(this, m)
         closeRecorderUi()
         show(m.id)
-        toast("Saved. Open MacroTap to edit delays, shape and size")
+        toast("Saved. Open Drivex Play to edit it")
         idleCheck()
     }
 
     override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
         closeRecorderUi()
         for (v in views.values) wm.removeView(v)
         views.clear()

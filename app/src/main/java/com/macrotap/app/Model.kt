@@ -8,7 +8,8 @@ data class Step(var type: Int, var x: Float, var y: Float, var x2: Float, var y2
 
 data class Macro(
     var id: Long, var name: String, var shape: Int, var size: Int, var color: Int,
-    var repeat: Int, var px: Int, var py: Int, var steps: MutableList<Step>
+    var repeat: Int, var px: Int, var py: Int, var steps: MutableList<Step>,
+    var opacity: Int = 90
 )
 
 object Store {
@@ -33,7 +34,7 @@ object Store {
             out.add(
                 Macro(
                     o.getLong("id"), o.getString("name"), o.getInt("shape"), o.getInt("size"),
-                    o.getInt("color"), o.getInt("repeat"), o.getInt("px"), o.getInt("py"), steps
+                    o.getInt("color"), o.getInt("repeat"), o.getInt("px"), o.getInt("py"), steps, o.optInt("opacity", 90)
                 )
             )
         }
@@ -46,7 +47,7 @@ object Store {
             val o = JSONObject()
             o.put("id", m.id); o.put("name", m.name); o.put("shape", m.shape)
             o.put("size", m.size); o.put("color", m.color); o.put("repeat", m.repeat)
-            o.put("px", m.px); o.put("py", m.py)
+            o.put("px", m.px); o.put("py", m.py); o.put("opacity", m.opacity)
             val sa = JSONArray()
             for (s in m.steps) {
                 val so = JSONObject()

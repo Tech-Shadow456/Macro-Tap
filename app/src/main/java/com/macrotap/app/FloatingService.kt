@@ -100,6 +100,7 @@ class FloatingService : Service() {
         v.shape = m.shape
         v.color = m.color
         v.label = m.name.take(2)
+        v.alpha = m.opacity / 100f
         val p = overlayParams(
             px, px,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -154,7 +155,7 @@ class FloatingService : Service() {
                     if (ok) {
                         if (unlocked) {
                             Store.move(this, id, p.x, p.y)
-                            v.alpha = 1f
+                            v.alpha = m.opacity / 100f
                             unlocked = false
                             toast("Locked")
                         }
@@ -162,7 +163,7 @@ class FloatingService : Service() {
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     handler.removeCallbacks(hold)
-                    v.alpha = 1f
+                    v.alpha = m.opacity / 100f
                     unlocked = false
                 }
             }

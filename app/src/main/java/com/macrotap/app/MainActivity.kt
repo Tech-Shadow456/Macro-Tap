@@ -320,6 +320,21 @@ class MainActivity : Activity() {
         })
         box.addView(bar)
 
+        val opLabel = TextView(this)
+        opLabel.text = "Opacity: ${m.opacity}%"
+        box.addView(opLabel)
+        val opBar = SeekBar(this)
+        opBar.max = 80
+        opBar.progress = (m.opacity - 20).coerceIn(0, 80)
+        opBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) {
+                opLabel.text = "Opacity: ${p + 20}%"
+            }
+            override fun onStartTrackingTouch(s: SeekBar?) {}
+            override fun onStopTrackingTouch(s: SeekBar?) {}
+        })
+        box.addView(opBar)
+
         val hdr = TextView(this)
         hdr.text = "Steps (wait in ms after each step)"
         hdr.setPadding(0, 24, 0, 8)
@@ -359,6 +374,7 @@ class MainActivity : Activity() {
                 m.shape = shapeSp.selectedItemPosition
                 m.color = Color.parseColor(colors[colorSp.selectedItemPosition].second)
                 m.size = bar.progress + 40
+                m.opacity = opBar.progress + 20
                 val newSteps = mutableListOf<Step>()
                 for ((s, e) in rows) {
                     s.delay = e.text.toString().toLongOrNull() ?: 100L

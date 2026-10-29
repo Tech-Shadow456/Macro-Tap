@@ -61,24 +61,18 @@ class MacroAccessibilityService : AccessibilityService() {
             handler.post { step(m, tok, round + 1, 0) }
             return
         }
-        val end = minOf(idx + 9, m.steps.size)
-        val b = GestureDescription.Builder()
-        var offset = 0L
-        var lastDelay = 0L
-        for (i in idx until end) {
-            val s = m.steps[i]
-            val path = Path()
-            path.moveTo(s.x, s.y)
-            if (s.type == 1) path.lineTo(s.x2, s.y2)
-            val dur = if (s.type == 1) 300L else 25L
-            b.addStroke(GestureDescription.StrokeDescription(path, offset, dur))
-            offset += dur + s.delay
-            lastDelay = s.delay
-        }
+        val s = m.steps[idx]
+        val path = Path()
+        path.moveTo(s.x, s.y)
+        if (s.type == 1) path.lineTo(s.x2, s.y2)
+        val dur = if (s.type == 1) 300L else 25L
+        val g = GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path, 0, dur))
+            .build()
         val next = Runnable {
-            handler.postDelayed({ step(m, tok, round, end) }, lastDelay)
+            handler.postDelayed({ step(m, tok, round, idx + 1) }, s.delay)
         }
-        val ok = dispatchGesture(b.build(), object : GestureResultCallback() {
+        val ok = dispatchGesture(g, object : GestureResultCallback() {
             override fun onCompleted(gestureDescription: GestureDescription?) {
                 next.run()
             }

@@ -28,11 +28,3 @@ jobs:
         with:
           name: MacroTap-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-EOFcd ~/Macro-Tap
-D=app/src/main/java/com/macrotap/app
-R=app/src/main/res
-
-cat > $R/values/strings.xml <<'EOF'
-<resources>
-    <string name="acc_desc">Drivex Play uses this only to perform the taps and swipes of your macros, take screenshots when you ask, and to see which app is in front so it can apply your game profiles. It does not read your screen content.</string>
-</resources>

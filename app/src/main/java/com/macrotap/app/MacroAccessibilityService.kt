@@ -4,8 +4,11 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Intent
 import android.graphics.Path
+import android.hardware.display.DisplayManager
 import android.os.Handler
 import android.os.Looper
+import android.util.DisplayMetrics
+import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 
 class MacroAccessibilityService : AccessibilityService() {
@@ -78,9 +81,16 @@ class MacroAccessibilityService : AccessibilityService() {
         }
         val s = m.steps[idx]
         val path = Path()
-        path.moveTo(s.x, s.y)
-        if (s.type == 1) path.lineTo(s.x2, s.y2)
-        val dur = if (s.type == 1) 300L else 25L
+        if (s.type == Step.CIRCLE) {
+            // Fresh random point inside this step's own circle, every single execution.
+            val (w, h) = screenSize()
+            val (rx, ry) = CircleMath.randomPointInCircle(s.x, s.y, s.r, w, h)
+            path.moveTo(rx, ry)
+        } else {
+            path.moveTo(s.x, s.y)
+            if (s.type == Step.SWIPE) path.lineTo(s.x2, s.y2)
+        }
+        val dur = if (s.type == Step.SWIPE) 300L else 25L
         val g = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, dur))
             .build()
@@ -96,6 +106,14 @@ class MacroAccessibilityService : AccessibilityService() {
             }
         }, null)
         if (!ok) stopMacro()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun screenSize(): Pair<Int, Int> {
+        val dm = DisplayMetrics()
+        val d = (getSystemService(DISPLAY_SERVICE) as DisplayManager).getDisplay(Display.DEFAULT_DISPLAY)
+        d.getRealMetrics(dm)
+        return Pair(dm.widthPixels, dm.heightPixels)
     }
 
     override fun onDestroy() {

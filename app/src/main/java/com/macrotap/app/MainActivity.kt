@@ -384,8 +384,11 @@ class MainActivity : Activity() {
             val r = LinearLayout(this)
             r.orientation = LinearLayout.HORIZONTAL
             val t = TextView(this)
-            val kind = if (s.type == 1) "Swipe" else "Tap"
-            t.text = "${i + 1}. $kind (${s.x.toInt()}, ${s.y.toInt()})"
+            t.text = when (s.type) {
+                Step.SWIPE -> "${i + 1}. Swipe (${s.x.toInt()}, ${s.y.toInt()})"
+                Step.CIRCLE -> "${i + 1}. Circle (${s.x.toInt()}, ${s.y.toInt()}) r=${s.r.toInt()}"
+                else -> "${i + 1}. Tap (${s.x.toInt()}, ${s.y.toInt()})"
+            }
             r.addView(t, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             val d = EditText(this)
             d.inputType = InputType.TYPE_CLASS_NUMBER
@@ -404,10 +407,7 @@ class MainActivity : Activity() {
 
         val sv = ScrollView(this)
         sv.addView(box)
-        AlertDialog.Builder(this)
-            .setTitle("Edit macro")
-            .setView(sv)
-            .setPositiveButton("Save") { _, _ ->
+        fun applyEdits() {
                 m.name = name.text.toString().ifBlank { m.name }
                 m.repeat = rep.text.toString().toIntOrNull() ?: 1
                 m.shape = shapeSp.selectedItemPosition
@@ -430,6 +430,19 @@ class MainActivity : Activity() {
                 Store.put(this, m)
                 if (FloatingService.shown.contains(m.id)) svc(FloatingService.SHOW, m.id)
                 h.postDelayed({ render() }, 400)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Edit macro")
+            .setView(sv)
+            .setPositiveButton("Save") { _, _ -> applyEdits() }
+            .setNeutralButton("+ Steps") { _, _ ->
+                if (!Settings.canDrawOverlays(this)) {
+                    toast("Allow overlay permission first (Home tab)")
+                } else {
+                    applyEdits()
+                    svc(FloatingService.RECORD, m.id)
+                    moveTaskToBack(true)
+                }
             }
             .setNegativeButton("Cancel", null)
             .show()

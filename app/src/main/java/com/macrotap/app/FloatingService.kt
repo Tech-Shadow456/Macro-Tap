@@ -31,7 +31,9 @@ class FloatingService : Service() {
     private var panel: View? = null
     private var addBtn: Button? = null
     private var capture: View? = null
+    private var circleUi: View? = null
     private var rec: MutableList<Step>? = null
+    private var appendId = 0L
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -46,7 +48,7 @@ class FloatingService : Service() {
         when (intent?.action) {
             SHOW -> show(id)
             HIDE -> removeButton(id)
-            RECORD -> startRecording()
+            RECORD -> startRecording(id)
             "panic" -> MacroAccessibilityService.instance?.panic()
             HIDE_ALL -> hideAllButtons()
         }
@@ -81,7 +83,7 @@ class FloatingService : Service() {
     }
 
     private fun idleCheck() {
-        if (views.isEmpty() && panel == null && capture == null) stopSelf()
+        if (views.isEmpty() && panel == null && capture == null && circleUi == null) stopSelf()
     }
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
@@ -202,26 +204,41 @@ class FloatingService : Service() {
         }
     }
 
-    private fun startRecording() {
+    private fun startRecording(appendTo: Long = 0L) {
         if (panel != null) return
+        appendId = appendTo
         rec = mutableListOf()
         val l = LinearLayout(this)
         l.orientation = LinearLayout.HORIZONTAL
         l.setBackgroundColor(Color.parseColor("#CC222222"))
         l.setPadding(16, 16, 16, 16)
+        fun compact(b: Button) {
+            b.isAllCaps = false
+            b.minWidth = 0
+            b.minimumWidth = 0
+            b.textSize = 13f
+        }
         val add = Button(this)
-        add.text = "+ Step (0)"
+        add.text = "+ Tap (0)"
+        compact(add)
         add.setOnClickListener { beginCapture() }
+        val circle = Button(this)
+        circle.text = "+ Circle"
+        compact(circle)
+        circle.setOnClickListener { beginCircle() }
         val done = Button(this)
         done.text = "Done"
+        compact(done)
         done.setOnClickListener { finishRecording() }
         val cancel = Button(this)
         cancel.text = "Cancel"
+        compact(cancel)
         cancel.setOnClickListener {
             closeRecorderUi()
             idleCheck()
         }
         l.addView(add)
+        l.addView(circle)
         l.addView(done)
         l.addView(cancel)
         val p = overlayParams(
@@ -233,7 +250,7 @@ class FloatingService : Service() {
         wm.addView(l, p)
         panel = l
         addBtn = add
-        toast("Open your target app, then tap + Step")
+        toast("Open your target app, then tap + Tap or + Circle")
     }
 
     private fun beginCapture() {
@@ -268,7 +285,7 @@ class FloatingService : Service() {
                         Step(0, dx, dy, dx, dy, 100)
                     }
                     rec?.add(step)
-                    addBtn?.text = "+ Step (${rec?.size ?: 0})"
+                    refreshCounter()
                     endCapture()
                 }
             }
@@ -290,12 +307,75 @@ class FloatingService : Service() {
         capture = null
     }
 
+    private fun refreshCounter() {
+        addBtn?.text = "+ Tap (${rec?.size ?: 0})"
+    }
+
+    /** Shows the circle configuration overlay for ONE new Circular Tap step. */
+    private fun beginCircle() {
+        if (capture != null || circleUi != null) return
+        val root = FrameLayout(this)
+        val cfg = CircleConfigView(this)
+        root.addView(cfg, FrameLayout.LayoutParams(MATCH, MATCH))
+
+        val bar = LinearLayout(this)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.setBackgroundColor(Color.parseColor("#CC222222"))
+        bar.setPadding(16, 16, 16, 16)
+        fun btn(t: String, onClick: () -> Unit): Button {
+            val b = Button(this)
+            b.text = t
+            b.isAllCaps = false
+            b.minWidth = 0
+            b.minimumWidth = 0
+            b.setOnClickListener { onClick() }
+            bar.addView(b)
+            return b
+        }
+        val stepPx = 8f * resources.displayMetrics.density
+        btn("\u2212") { cfg.grow(-stepPx) }
+        btn("+") { cfg.grow(stepPx) }
+        btn("Save") {
+            // Convert overlay-local pixels to true screen pixels (handles any window offset).
+            val loc = IntArray(2)
+            cfg.getLocationOnScreen(loc)
+            rec?.add(Step(Step.CIRCLE, cfg.cx + loc[0], cfg.cy + loc[1], 0f, 0f, 100, cfg.radius))
+            refreshCounter()
+            endCircle()
+        }
+        btn("Cancel") { endCircle() }
+        root.addView(
+            bar,
+            FrameLayout.LayoutParams(WRAP, WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
+                bottomMargin = dp(48)
+            }
+        )
+
+        val p = overlayParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+        p.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        wm.addView(root, p)
+        circleUi = root
+    }
+
+    /** Removes the circle overlay completely: nothing circle-related stays on screen. */
+    private fun endCircle() {
+        circleUi?.let { wm.removeView(it) }
+        circleUi = null
+    }
+
     private fun closeRecorderUi() {
+        endCircle()
         endCapture()
         panel?.let { wm.removeView(it) }
         panel = null
         addBtn = null
         rec = null
+        appendId = 0L
     }
 
     private fun finishRecording() {
@@ -303,6 +383,18 @@ class FloatingService : Service() {
         if (steps.isEmpty()) {
             toast("Add at least one step first")
             return
+        }
+        if (appendId != 0L) {
+            val existing = Store.get(this, appendId)
+            if (existing != null) {
+                existing.steps.addAll(steps)
+                Store.put(this, existing)
+                closeRecorderUi()
+                if (shown.contains(existing.id)) show(existing.id)
+                toast("Steps added to ${existing.name}")
+                idleCheck()
+                return
+            }
         }
         val n = Store.all(this).size
         val m = Macro(

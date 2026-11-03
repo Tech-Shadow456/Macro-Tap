@@ -4,7 +4,17 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class Step(var type: Int, var x: Float, var y: Float, var x2: Float, var y2: Float, var delay: Long)
+/** type: 0 = tap, 1 = swipe, 2 = circular random tap (x,y = centre, r = radius in px). */
+data class Step(
+    var type: Int, var x: Float, var y: Float, var x2: Float, var y2: Float, var delay: Long,
+    var r: Float = 0f
+) {
+    companion object {
+        const val TAP = 0
+        const val SWIPE = 1
+        const val CIRCLE = 2
+    }
+}
 
 data class Macro(
     var id: Long, var name: String, var shape: Int, var size: Int, var color: Int,
@@ -27,7 +37,8 @@ object Store {
                 steps.add(
                     Step(
                         st.getInt("t"), st.getDouble("x").toFloat(), st.getDouble("y").toFloat(),
-                        st.getDouble("x2").toFloat(), st.getDouble("y2").toFloat(), st.getLong("d")
+                        st.getDouble("x2").toFloat(), st.getDouble("y2").toFloat(), st.getLong("d"),
+                        st.optDouble("r", 0.0).toFloat()
                     )
                 )
             }
@@ -73,6 +84,7 @@ object Store {
                 val so = JSONObject()
                 so.put("t", s.type); so.put("x", s.x.toDouble()); so.put("y", s.y.toDouble())
                 so.put("x2", s.x2.toDouble()); so.put("y2", s.y2.toDouble()); so.put("d", s.delay)
+                so.put("r", s.r.toDouble())
                 sa.put(so)
             }
             o.put("steps", sa)

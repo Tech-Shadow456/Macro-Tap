@@ -13,16 +13,16 @@ val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
 val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
 
 object C {
-    val BG = Color.parseColor("#0B0E14")
-    val CARD = Color.parseColor("#151A23")
-    val LINE = Color.parseColor("#232B38")
-    val ACCENT = Color.parseColor("#00E5A0")
-    val TRACK = Color.parseColor("#6600E5A0")
-    val OFF = Color.parseColor("#33FFFFFF")
-    val TEXT = Color.parseColor("#EAF0FF")
-    val SUB = Color.parseColor("#8A94A8")
-    val DANGER = Color.parseColor("#FF4D6A")
-    val WARN = Color.parseColor("#FFB020")
+    var BG = Color.parseColor("#0B0E14")
+    var CARD = Color.parseColor("#151A23")
+    var LINE = Color.parseColor("#232B38")
+    var ACCENT = Color.parseColor("#00E5A0")
+    var TRACK = Color.parseColor("#6600E5A0")
+    var OFF = Color.parseColor("#33FFFFFF")
+    var TEXT = Color.parseColor("#EAF0FF")
+    var SUB = Color.parseColor("#8A94A8")
+    var DANGER = Color.parseColor("#FF4D6A")
+    var WARN = Color.parseColor("#FFB020")
 }
 
 fun Context.dp(n: Int): Int = (n * resources.displayMetrics.density).toInt()

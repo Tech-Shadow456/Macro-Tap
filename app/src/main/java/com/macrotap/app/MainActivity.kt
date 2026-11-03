@@ -24,10 +24,11 @@ class MainActivity : Activity() {
     private lateinit var content: FrameLayout
     private lateinit var nav: LinearLayout
     private var tab = 0
+    private var animateNext = true
     private val h = Handler(Looper.getMainLooper())
     private var ticker: Runnable? = null
-    private val names = listOf("Home", "Macros", "Tools", "Monitor", "Record")
-    private val icons = listOf("🏠", "⚡", "🎛", "📊", "🎥")
+    private val names = listOf("Home", "Macros", "Tools", "Monitor", "Record", "More")
+    private val icons = listOf("🏠", "⚡", "🎛", "📊", "🎥", "✨")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +38,12 @@ class MainActivity : Activity() {
         root.orientation = LinearLayout.VERTICAL
         root.setBackgroundColor(C.BG)
         content = FrameLayout(this)
-        root.addView(content, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        val backdrop = Backdrop(this)
+        backdrop.style = Themes.backdropStyle(this)
+        val stack = FrameLayout(this)
+        stack.addView(backdrop, FrameLayout.LayoutParams(MATCH, MATCH))
+        stack.addView(content, FrameLayout.LayoutParams(MATCH, MATCH))
+        root.addView(stack, LinearLayout.LayoutParams(MATCH, 0, 1f))
         nav = LinearLayout(this)
         nav.orientation = LinearLayout.HORIZONTAL
         nav.setBackgroundColor(C.CARD)
@@ -76,6 +82,7 @@ class MainActivity : Activity() {
             t.setTextColor(if (i == tab) C.ACCENT else C.SUB)
             t.setOnClickListener {
                 tab = i
+                animateNext = true
                 content.removeAllViews()
                 render()
             }
@@ -83,7 +90,7 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun render() {
+    fun render() {
         stopTicker()
         val old = content.getChildAt(0) as? ScrollView
         val y = old?.scrollY ?: 0
@@ -100,7 +107,17 @@ class MainActivity : Activity() {
             1 -> macros(col)
             2 -> tools(col)
             3 -> monitor(col)
-            else -> recorder(col)
+            4 -> recorder(col)
+            else -> More.tab(this, col)
+        }
+        if (animateNext) {
+            animateNext = false
+            for (k in 0 until col.childCount) {
+                val child = col.getChildAt(k)
+                child.alpha = 0f
+                child.translationY = 40f
+                child.animate().alpha(1f).translationY(0f).setStartDelay(k * 45L).setDuration(260).start()
+            }
         }
         sv.post { sv.scrollTo(0, y) }
     }
@@ -293,6 +310,16 @@ class MainActivity : Activity() {
         shapeSp.setSelection(m.shape)
         box.addView(shapeSp)
 
+        val iconSp = Spinner(this)
+        iconSp.adapter = ArrayAdapter(
+            this, android.R.layout.simple_spinner_dropdown_item,
+            ShapeButtonView.ICON_NAMES.mapIndexed { idx, nm ->
+                if (idx >= 3 && !License.isPro(this)) "🔒 $nm (Pro)" else nm
+            }
+        )
+        iconSp.setSelection(m.icon.coerceIn(0, ShapeButtonView.ICON_NAMES.size - 1))
+        box.addView(iconSp)
+
         val colors = listOf(
             "Green" to "#00E5A0", "Orange" to "#E64A19", "Blue" to "#1976D2",
             "Purple" to "#7B1FA2", "Red" to "#D32F2F", "Black" to "#212121"
@@ -372,6 +399,13 @@ class MainActivity : Activity() {
                 m.name = name.text.toString().ifBlank { m.name }
                 m.repeat = rep.text.toString().toIntOrNull() ?: 1
                 m.shape = shapeSp.selectedItemPosition
+                val pickedIcon = iconSp.selectedItemPosition
+                if (pickedIcon >= 3 && !License.isPro(this)) {
+                    toast("That icon needs Pro. Using Crosshair.")
+                    m.icon = 0
+                } else {
+                    m.icon = pickedIcon
+                }
                 m.color = Color.parseColor(colors[colorSp.selectedItemPosition].second)
                 m.size = bar.progress + 40
                 m.opacity = opBar.progress + 20
@@ -534,6 +568,7 @@ class MainActivity : Activity() {
             startForegroundService(i)
             moveTaskToBack(true)
         }
+        More.onResult(this, requestCode, resultCode, data)
         if (requestCode == 7) {
             if (Game.hasCallRole(this)) Game.setCallsBlocked(this, true)
             render()

@@ -79,6 +79,7 @@ class HudService : Service() {
 
     private fun update() {
         val t = Stats.batteryTemp(this)
+        Alerts.check(this, t)
         val ts = String.format("%.0f", t)
         val ram = Stats.ramPct(this)
         val b = Stats.batteryPct(this)

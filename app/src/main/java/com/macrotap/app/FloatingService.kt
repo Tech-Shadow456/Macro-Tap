@@ -46,6 +46,7 @@ class FloatingService : Service() {
             SHOW -> show(id)
             HIDE -> removeButton(id)
             RECORD -> startRecording()
+            "panic" -> MacroAccessibilityService.instance?.panic()
         }
         idleCheck()
         return START_NOT_STICKY
@@ -56,7 +57,17 @@ class FloatingService : Service() {
         nm.createNotificationChannel(
             NotificationChannel("macrotap", "Drivex Play", NotificationManager.IMPORTANCE_LOW)
         )
+        val stopPi = PendingIntent.getService(
+            this, 3, Intent(this, FloatingService::class.java).setAction("panic"),
+            PendingIntent.FLAG_IMMUTABLE
+        )
         val n = Notification.Builder(this, "macrotap")
+            .addAction(
+                Notification.Action.Builder(
+                    android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_media_pause),
+                    "Stop macros", stopPi
+                ).build()
+            )
             .setContentTitle("Drivex Play buttons are active")
             .setSmallIcon(android.R.drawable.ic_menu_add)
             .build()
@@ -100,6 +111,7 @@ class FloatingService : Service() {
         v.shape = m.shape
         v.color = m.color
         v.label = m.name.take(2)
+        v.icon = m.icon
         v.alpha = m.opacity / 100f
         val p = overlayParams(
             px, px,

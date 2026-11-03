@@ -175,6 +175,15 @@ val dy = (e.rawY - ty).toInt()
         button(r, "■ Stop", false, true) {
             startService(Intent(this, RecorderService::class.java).setAction("STOP"))
         }
+        val r2 = row(col)
+        button(r2, "🛑 Panic", false, true) {
+            MacroAccessibilityService.instance?.panic()
+            toast("All macros stopped")
+        }
+        button(r2, "📸 Shot", false, true) {
+            closePanel()
+            h.postDelayed({ MacroAccessibilityService.instance?.screenshot() }, 400)
+        }
         button(col, "Close", false) { closePanel() }
 
         val sv = ScrollView(this)

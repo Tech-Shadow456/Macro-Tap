@@ -9,36 +9,55 @@ data class Step(var type: Int, var x: Float, var y: Float, var x2: Float, var y2
 data class Macro(
     var id: Long, var name: String, var shape: Int, var size: Int, var color: Int,
     var repeat: Int, var px: Int, var py: Int, var steps: MutableList<Step>,
-    var opacity: Int = 90
+    var opacity: Int = 90, var icon: Int = 0
 )
 
 object Store {
     private fun prefs(c: Context) = c.getSharedPreferences("macros", Context.MODE_PRIVATE)
 
-    fun all(c: Context): MutableList<Macro> {
-        val arr = JSONArray(prefs(c).getString("list", "[]"))
+    private fun parse(s: String): MutableList<Macro> {
+        val arr = JSONArray(s)
         val out = mutableListOf<Macro>()
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
             val sa = o.getJSONArray("steps")
             val steps = mutableListOf<Step>()
             for (j in 0 until sa.length()) {
-                val s = sa.getJSONObject(j)
+                val st = sa.getJSONObject(j)
                 steps.add(
                     Step(
-                        s.getInt("t"), s.getDouble("x").toFloat(), s.getDouble("y").toFloat(),
-                        s.getDouble("x2").toFloat(), s.getDouble("y2").toFloat(), s.getLong("d")
+                        st.getInt("t"), st.getDouble("x").toFloat(), st.getDouble("y").toFloat(),
+                        st.getDouble("x2").toFloat(), st.getDouble("y2").toFloat(), st.getLong("d")
                     )
                 )
             }
             out.add(
                 Macro(
                     o.getLong("id"), o.getString("name"), o.getInt("shape"), o.getInt("size"),
-                    o.getInt("color"), o.getInt("repeat"), o.getInt("px"), o.getInt("py"), steps, o.optInt("opacity", 90)
+                    o.getInt("color"), o.getInt("repeat"), o.getInt("px"), o.getInt("py"), steps,
+                    o.optInt("opacity", 90), o.optInt("icon", 0)
                 )
             )
         }
         return out
+    }
+
+    fun raw(c: Context): String = prefs(c).getString("list", "[]") ?: "[]"
+
+    fun setRaw(c: Context, s: String): Boolean {
+        return try {
+            parse(s)
+            prefs(c).edit().putString("list", s).apply()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun all(c: Context): MutableList<Macro> = try {
+        parse(raw(c))
+    } catch (e: Exception) {
+        mutableListOf()
     }
 
     private fun saveAll(c: Context, list: List<Macro>) {
@@ -47,7 +66,8 @@ object Store {
             val o = JSONObject()
             o.put("id", m.id); o.put("name", m.name); o.put("shape", m.shape)
             o.put("size", m.size); o.put("color", m.color); o.put("repeat", m.repeat)
-            o.put("px", m.px); o.put("py", m.py); o.put("opacity", m.opacity)
+            o.put("px", m.px); o.put("py", m.py)
+            o.put("opacity", m.opacity); o.put("icon", m.icon)
             val sa = JSONArray()
             for (s in m.steps) {
                 val so = JSONObject()

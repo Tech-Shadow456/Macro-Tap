@@ -21,7 +21,12 @@ class MacroAccessibilityService : AccessibilityService() {
         instance = this
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        val e = event ?: return
+        if (e.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        val pkg = e.packageName?.toString() ?: return
+        Profiles.onForeground(this, pkg)
+    }
 
     override fun onInterrupt() {
         stopMacro()
@@ -32,6 +37,10 @@ class MacroAccessibilityService : AccessibilityService() {
         stopMacro()
         return super.onUnbind(intent)
     }
+
+    fun panic() = stopMacro()
+
+    fun screenshot(): Boolean = performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT)
 
     fun toggle(m: Macro) {
         if (runningId == m.id) {

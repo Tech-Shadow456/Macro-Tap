@@ -152,6 +152,7 @@ class FloatingService : Service() {
                         moved = false
                         unlocked = false
                         handler.postDelayed(hold, 5000)
+                        runMacro(id)
                     }
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -177,10 +178,6 @@ class FloatingService : Service() {
                             v.alpha = m.opacity / 100f
                             unlocked = false
                             toast("Locked")
-                        } else if (!moved) {
-                            // Start/stop the macro only AFTER the finger is lifted, so the real
-                            // touch is gone before the app injects its own taps.
-                            runMacro(id)
                         }
                     }
                 }

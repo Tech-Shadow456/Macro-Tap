@@ -27,8 +27,8 @@ class MainActivity : Activity() {
     private var animateNext = true
     private val h = Handler(Looper.getMainLooper())
     private var ticker: Runnable? = null
-    private val names = listOf("Home", "Macros", "Tools", "Monitor", "Record", "More")
-    private val icons = listOf("🏠", "⚡", "🎛", "📊", "🎥", "✨")
+    private val names = listOf("Home", "Macros", "Tools", "Monitor", "Record", "More", "Games")
+    private val icons = listOf("🏠", "⚡", "🎛", "📊", "🎥", "✨", "🎮")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -109,7 +109,8 @@ class MainActivity : Activity() {
                 2 -> tools(col)
                 3 -> monitor(col)
                 4 -> recorder(col)
-                else -> More.tab(this, col)
+                5 -> More.tab(this, col)
+                else -> GamesScreen.tab(this, col)
             }
         } catch (e: Exception) {
             crashCard(col, e)

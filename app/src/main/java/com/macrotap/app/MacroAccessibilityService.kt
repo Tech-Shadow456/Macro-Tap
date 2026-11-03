@@ -19,6 +19,12 @@ class MacroAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         instance = this
+        PauseManager.onAccessibilityResumed(this)
+    }
+
+    fun pauseService() {
+        stopMacro()
+        disableSelf()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {

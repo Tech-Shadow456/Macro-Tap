@@ -184,6 +184,11 @@ val dy = (e.rawY - ty).toInt()
             closePanel()
             h.postDelayed({ MacroAccessibilityService.instance?.screenshot() }, 400)
         }
+        button(r2, "⏸ Pause", false, true) {
+            PauseManager.pause(this)
+            toast("Paused. Safe to pay now.")
+            closePanel()
+        }
         button(col, "Close", false) { closePanel() }
 
         val sv = ScrollView(this)

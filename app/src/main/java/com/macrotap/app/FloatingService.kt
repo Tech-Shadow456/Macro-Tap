@@ -21,6 +21,7 @@ class FloatingService : Service() {
         const val SHOW = "show"
         const val HIDE = "hide"
         const val RECORD = "record"
+        const val HIDE_ALL = "hideAll"
         val shown = mutableSetOf<Long>()
     }
 
@@ -47,6 +48,7 @@ class FloatingService : Service() {
             HIDE -> removeButton(id)
             RECORD -> startRecording()
             "panic" -> MacroAccessibilityService.instance?.panic()
+            HIDE_ALL -> hideAllButtons()
         }
         idleCheck()
         return START_NOT_STICKY
@@ -96,6 +98,10 @@ class FloatingService : Service() {
         return WindowManager.LayoutParams(
             w, h, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, flags, PixelFormat.TRANSLUCENT
         )
+    }
+
+    private fun hideAllButtons() {
+        for (id in HashSet(views.keys)) removeButton(id)
     }
 
     private fun removeButton(id: Long) {

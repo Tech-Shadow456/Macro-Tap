@@ -104,6 +104,10 @@ val dy = (e.rawY - ty).toInt()
 
     private fun openPanel() {
         if (panel != null) return
+        if (!UsageTimer.hasTimeLeft(this)) {
+            toast("Daily free limit reached. Activate Pro for unlimited use.")
+            return
+        }
         val col = LinearLayout(this)
         col.orientation = LinearLayout.VERTICAL
         col.setPadding(dp(14), dp(14), dp(14), dp(14))
@@ -211,8 +215,12 @@ val dy = (e.rawY - ty).toInt()
         p.x = dp(20)
         p.y = (screenH - height) / 2
         wm.addView(sv, p)
-        panel = sv
+panel = sv
         tick.run()
+        UsageTimer.start(this) {
+            closePanel()
+            toast("Daily free time is up. Activate Pro for unlimited use.")
+        }
     }
 
     private val tick = object : Runnable {
@@ -228,6 +236,7 @@ val dy = (e.rawY - ty).toInt()
 
     private fun closePanel() {
         h.removeCallbacks(tick)
+        UsageTimer.stop()
         panel?.let { wm.removeView(it) }
         panel = null
         stats = null

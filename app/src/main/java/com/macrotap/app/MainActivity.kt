@@ -239,6 +239,10 @@ class MainActivity : Activity() {
     private fun macros(col: LinearLayout) {
         text(col, "Macros", 28f, C.TEXT, true)
         text(col, "Floating buttons that tap for you", 14f, C.SUB)
+        if (!License.isPro(this)) {
+            val left = UsageTimer.remainingMinutes(this)
+            text(col, "Free plan: $left min left today (resets at midnight)", 13f, if (left <= 10) C.WARN else C.SUB, false, 4)
+        }
 
         if (MacroAccessibilityService.instance == null) {
             val w = card(col)

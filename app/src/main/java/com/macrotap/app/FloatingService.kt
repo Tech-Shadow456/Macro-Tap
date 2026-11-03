@@ -109,9 +109,20 @@ class FloatingService : Service() {
     private fun removeButton(id: Long) {
         views.remove(id)?.let { wm.removeView(it) }
         shown.remove(id)
+        if (views.isEmpty()) UsageTimer.stop()
+    }
+
+    private fun hideAllForTimeout() {
+        for (id in HashSet(views.keys)) removeButton(id)
+        Toast.makeText(this, "Daily free time is up. Activate Pro for unlimited use.", Toast.LENGTH_LONG).show()
+        idleCheck()
     }
 
     private fun show(id: Long) {
+        if (!UsageTimer.hasTimeLeft(this)) {
+            Toast.makeText(this, "Daily free limit reached. Activate Pro for unlimited use.", Toast.LENGTH_LONG).show()
+            return
+        }
         val m = Store.get(this, id) ?: return
         removeButton(id)
         val px = (m.size * resources.displayMetrics.density).toInt()
@@ -192,6 +203,7 @@ class FloatingService : Service() {
         wm.addView(v, p)
         views[id] = v
         shown.add(id)
+        UsageTimer.start(this) { hideAllForTimeout() }
     }
 
     private fun runMacro(id: Long) {

@@ -102,13 +102,17 @@ class MainActivity : Activity() {
         col.setPadding(dp(16), dp(20), dp(16), dp(24))
         sv.addView(col)
         content.addView(sv, FrameLayout.LayoutParams(MATCH, MATCH))
-        when (tab) {
-            0 -> home(col)
-            1 -> macros(col)
-            2 -> tools(col)
-            3 -> monitor(col)
-            4 -> recorder(col)
-            else -> More.tab(this, col)
+        try {
+            when (tab) {
+                0 -> home(col)
+                1 -> macros(col)
+                2 -> tools(col)
+                3 -> monitor(col)
+                4 -> recorder(col)
+                else -> More.tab(this, col)
+            }
+        } catch (e: Exception) {
+            crashCard(col, e)
         }
         if (animateNext) {
             animateNext = false
@@ -120,6 +124,13 @@ class MainActivity : Activity() {
             }
         }
         sv.post { sv.scrollTo(0, y) }
+    }
+
+    private fun crashCard(col: LinearLayout, e: Throwable) {
+        val w = java.io.StringWriter()
+        e.printStackTrace(java.io.PrintWriter(w))
+        text(col, "This screen hit an error", 18f, C.DANGER, true)
+        text(col, w.toString().take(2000), 11f, C.SUB, false, 8)
     }
 
     private fun svc(action: String, id: Long = 0L) {
